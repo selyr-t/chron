@@ -1,13 +1,15 @@
 # chron
 
-*chron* is a SwiftUI app that converts a base tempo (entered in BPM, Hz, milliseconds, or samples) into a wide range of subdivisions and multiples, and shows each one in every unit as a reference table. This is intended as a convenience for usersn needing tempo-relative conversions on hand for any musical or other general purpose audio tools (think: delay time, LFO rate, loop-windows). Users can set a custom divisor for the subdivisions and multiples, and choose the samplerate that the samples column is calculated at to match their current project.
+*chron* is a SwiftUI app that converts a base tempo (entered in BPM, Hz, milliseconds, or samples) into a wide range of subdivisions and multiples, and shows each one in every unit, together with its length in ticks, as a reference table. This is intended as a convenience for usersn needing tempo-relative conversions on hand for any musical or other general purpose audio tools (think: delay time, LFO rate, loop-windows). Users can set a custom divisor for the subdivisions and multiples, and choose the samplerate and tick resolution that the samples and ticks columns are calculated at to match their current project.
 
 
 ## Features
 
-- **Tempo Conversion into Separate Time Units:** The tempo can be entered in BPM, Hz, milliseconds, or samples. The selected unit is the first column, where each subsequent unit follows to the right. Additionally, when the user changes the unit, the program maintains the entered value so that the tempo stays the same (ex: $120 \text{ BPM}$ becomes $2 \text{ Hz}$).
+- **Tempo Conversion into Separate Time Units:** The tempo can be entered in BPM, Hz, milliseconds, or samples. The selected unit is the first column, where each subsequent unit follows to the right, and the ticks column is last. Additionally, when the user changes the unit, the program maintains the entered value so that the tempo stays the same (ex: $120 \text{ BPM}$ becomes $2 \text{ Hz}$).
 
-- **Custom Samplerats:** A dropdown menu provides standard samplerates ($22050$, $44100$, $48000$, or $96000$) as well as the option for custom rates to be entered when "Other" is selected.
+- **Custom Samplerates:** A dropdown menu provides standard samplerates ($22050$, $44100$, $48000$, or $96000$) as well as the option for custom rates to be entered when "Other" is selected.
+
+- **Custom Tick Resolution:** A dropdown menu provides common resolutions ($96$, $240$, $480$, or $960$ ticks per quarter note) as well as the option for a custom resolution to be entered when "Other" is selected. The default is $480$.
 
 - **Custom Divisor:** The divisor sets the first step away from one bar, and every later step doubles. Decimal divisors such as 2.5 are also accepted. Examples are below:
 
@@ -34,21 +36,22 @@ Every column is computed from the length of a row in seconds. The entered tempo 
 | ms | $\text{ms} / 1000$ |
 | samples | $\text{samples} / f_s$ |
 
-A row that lasts $b$ beats lasts $T \cdot b$ seconds, where $b$ includes the divisor, and when added by the user, the triplet and dot factors. Each column then converts that length back into its own unit.
+A row that lasts $b$ beats lasts $T \cdot b$ seconds, where $b$ includes the divisor, and when added by the user, the triplet and dot factors. Each column then converts that length back into its own unit. The ticks column is $b \times$ the tick resolution, so it does not change with the tempo.
 
-At 120 BPM and 48 kHz sampling rate:
+At 120 BPM, 48 kHz sampling rate, and 480 ticks per beat:
 
-| Row | BPM | Hz | ms | samples |
-|---|---|---|---|---|
-| 1x (1 bar) | 30 | 0.5 | 2,000 | 96,000 |
-| 1/4 (beat) | 120 | 2 | 500 | 24,000 |
-| 1/8 | 240 | 4 | 250 | 12,000 |
-| 1/4..T | 102.857 | 1.71429 | 583.333 | 28,000 |
+| Row | BPM | Hz | ms | samples | ticks |
+|---|---|---|---|---|---|
+| 1x (1 bar) | 30 | 0.5 | 2,000 | 96,000 | 1,920 |
+| 1/4 (beat) | 120 | 2 | 500 | 24,000 | 480 |
+| 1/8 | 240 | 4 | 250 | 12,000 | 240 |
+| 1/4..T | 102.857 | 1.71429 | 583.333 | 28,000 | 560 |
 
 ## Assumptions
 
 - The entered tempo is the quarter note, which is the standard convention for BPM.
 - One bar is limited four beats (4/4) at the moment.
+- Ticks are not available as an input unit, because a tick is a fraction of a beat and does not define a tempo.
 
 ## Requirements
 

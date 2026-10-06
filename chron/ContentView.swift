@@ -9,8 +9,27 @@ struct ContentView: View {
     @State private var modifiers = NoteModifiers()
     /// The first step away from 1 bar; every later step doubles. 2 gives binary note values.
     @State private var divisor: Double = 2
+    /// A preset tick resolution, or nil when "Other" is selected.
+    @State private var presetTicks: Int? = 480
+    @State private var customTicks: Double = 480
 
     private static let presetRates = [22050, 44100, 48000, 96000]
+    /// Ticks per quarter note. Max uses 480.
+    private static let presetTickResolutions = [96, 240, 480, 960]
+
+    /// Ticks per beat (quarter note).
+    private var ticksPerBeat: Double {
+        presetTicks.map(Double.init) ?? customTicks
+    }
+
+    private var isTicksPerBeatValid: Bool {
+        ticksPerBeat.isFinite && ticksPerBeat > 0
+    }
+
+    /// Ticks count fractions of a beat, so they are the same at every tempo and are computed from
+    /// the row's length in beats rather than from its duration in seconds.
+    private static let ticksFormat = FloatingPointFormatStyle<Double>.number
+        .precision(.fractionLength(0...2))
 
     private var sampleRate: Double {
         presetRate.map(Double.init) ?? customRate
@@ -28,12 +47,14 @@ struct ContentView: View {
     private var invalidEntryMessage: LocalizedStringKey {
         if !isSampleRateValid { return "Enter a sample rate greater than zero" }
         if !isDivisorValid { return "Enter a divisor greater than 1" }
+        if !isTicksPerBeatValid { return "Enter a tick resolution greater than zero" }
         return "Enter a tempo greater than zero"
     }
 
     /// The duration of the entered beat in seconds, or nil when the entry has no finite duration.
     private var period: Double? {
-        guard value.isFinite, value > 0, isSampleRateValid, isDivisorValid else { return nil }
+        guard value.isFinite, value > 0, isSampleRateValid, isDivisorValid, isTicksPerBeatValid
+        else { return nil }
         return unit.period(from: value, sampleRate: sampleRate)
     }
 
@@ -125,6 +146,23 @@ struct ContentView: View {
                     #endif
                     .frame(maxWidth: 80)
                 Spacer()
+                if presetTicks == nil {
+                    TextField("Ticks per beat", value: $customTicks, format: .number)
+                        .textFieldStyle(.roundedBorder)
+                        #if os(iOS)
+                        .keyboardType(.decimalPad)
+                        #endif
+                        .frame(maxWidth: 80)
+                }
+                Picker("Ticks per beat", selection: $presetTicks) {
+                    ForEach(Self.presetTickResolutions, id: \.self) { ticks in
+                        Text("\(ticks) ticks/beat").tag(Optional(ticks))
+                    }
+                    Text("Other").tag(Int?.none)
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .fixedSize()
             }
             checkboxes
         }
@@ -162,7 +200,7 @@ struct ContentView: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     row(label: Text("Division"),
-                        cells: columns.map { Text($0.rawValue) },
+                        cells: columns.map { Text($0.rawValue) } + [Text("ticks")],
                         isBeat: false)
                         .font(.caption.bold())
                         .foregroundStyle(.secondary)
@@ -174,7 +212,7 @@ struct ContentView: View {
                             cells: columns.map { column in
                                 Text(column.value(fromPeriod: seconds, sampleRate: sampleRate),
                                      format: column.displayFormat)
-                            },
+                            } + [Text(beats * ticksPerBeat, format: Self.ticksFormat)],
                             isBeat: subdivision.isBeat)
                             .id(subdivision.id)
                     }
