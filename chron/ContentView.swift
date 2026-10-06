@@ -168,8 +168,8 @@ struct ContentView: View {
                         .foregroundStyle(.secondary)
                     Divider()
                     ForEach(Subdivision.ladder(divisor: divisor)) { subdivision in
-                        let seconds = period * Subdivision.beatsPerBar * subdivision.bars
-                            * modifiers.factor
+                        let beats = Subdivision.beatsPerBar * subdivision.bars * modifiers.factor
+                        let seconds = period * beats
                         row(label: label(for: subdivision),
                             cells: columns.map { column in
                                 Text(column.value(fromPeriod: seconds, sampleRate: sampleRate),
@@ -204,22 +204,42 @@ struct ContentView: View {
 
     /// One table row. The label column has a fixed width and the value columns share the
     /// remaining width equally, so that the columns align from row to row.
+    /// The vertical padding is on each cell rather than on the row, so that the column
+    /// separators run the full height of the row and meet the separators of the next row.
     private func row(label: some View, cells: [Text], isBeat: Bool) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 0) {
             label
+                .padding(.vertical, 8)
+                .padding(.trailing, 8)
                 .frame(width: 110, alignment: .leading)
             ForEach(cells.indices, id: \.self) { index in
+                ColumnSeparator()
                 cells[index]
                     .monospacedDigit()
                     .fontWeight(index == 0 ? .semibold : .regular)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+        // The row is as tall as its tallest cell, and each separator fills that height.
+        .fixedSize(horizontal: false, vertical: true)
         .padding(.horizontal)
-        .padding(.vertical, 8)
         .background(isBeat ? Color.accentColor.opacity(0.18) : Color.clear)
+    }
+}
+
+/// A vertical line one physical pixel wide that fills the height of its row, so that the lines
+/// of consecutive rows join into one line per column.
+struct ColumnSeparator: View {
+    @Environment(\.displayScale) private var displayScale
+
+    var body: some View {
+        Rectangle()
+            .fill(.separator)
+            .frame(width: 1 / displayScale)
     }
 }
 
